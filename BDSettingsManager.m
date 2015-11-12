@@ -30,18 +30,19 @@ void prefschanged(CFNotificationCenterRef center, void * observer, CFStringRef n
     CFArrayRef keyList = CFPreferencesCopyKeyList(appID , kCFPreferencesCurrentUser, kCFPreferencesAnyHost) ?: CFArrayCreate(NULL, NULL, 0, NULL);
     self.settings = (NSDictionary *)CFPreferencesCopyMultiple(keyList, appID , kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
     CFRelease(keyList);
+    HBLogInfo(@"the settings for mia are : %@", self.settings);
 }
 
 - (BOOL)enabled {
     return self.settings[@"enabled"] ? [self.settings[@"enabled"] boolValue] : YES;
 }
 
-- (NSDictionary *)notifications {
-    return self.settings[@"notifications"] ? self.settings[@"notifications"] : [NSDictionary new];
+- (NSMutableDictionary *)notifications {
+    return self.settings[@"notifications"] ? [self.settings[@"notifications"] mutableCopy] : [NSMutableDictionary new];
 }
 
-- (void)setNotifications:(NSDictionary*)notifications {
-    HBLogInfo(@"setting the notifications");
+- (void)setNotifications:(NSMutableDictionary*)notifications {
+    HBLogInfo(@"setting the notifications : %@", notifications);
     CFStringRef appID = CFSTR("com.brycedev.mia");
     CFPreferencesSetValue(CFSTR("notifications"), (CFPropertyListRef *)notifications, appID, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
     [self updateSettings];

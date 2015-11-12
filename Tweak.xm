@@ -1,32 +1,15 @@
 #import "Interfaces.h"
 #import "BDSettingsManager.h"
 
-static BOOL enabled = YES;
-static NSString *title = @"MiaAssistant";
-
-@interface AppDelegate: UIResponder
-
-@end
-
-%hook Springboard
-
--(void)_didSuspend {
-	HBLogInfo(@"the application is : %@", self);
-    %orig;
-}
-
-%end
-/*
-%hook UIApplication
+%hook SMSApplication
 
 - (void)systemApplicationDidSuspend {
-	HBLogInfo(@"application did suspend");
-    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.brycedev.mia.center.appsuspend"), nil, nil, YES);
-    %orig;
+	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.brycedev.mia.center.appsuspend"), nil, nil, YES);
+    return %orig;
 }
 
 %end
-*/
+
 %hook CKTranscriptController
 
 - (void)viewDidLoad {
@@ -80,7 +63,6 @@ static NSString *title = @"MiaAssistant";
 - (void)addNewNotification:(NSArray*)array {
 	HBLogInfo(@"adding new notification");
     NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
-
     [notesDict setObject: [array objectAtIndex:0] forKey: [array objectAtIndex:1]];
     [[BDSettingsManager sharedManager] setNotifications: notesDict];
 }
@@ -95,13 +77,10 @@ static NSString *title = @"MiaAssistant";
     NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
 
     if (!([notesDict count] == 0)) {
-
         if ([notesDict objectForKey: chat.chatIdentifier]) {
             [notesDict removeObjectForKey: chat.chatIdentifier];
             [[BDSettingsManager sharedManager] setNotifications: notesDict];
-
          }
-
     }
 
     %orig;
@@ -125,13 +104,37 @@ static NSString *title = @"MiaAssistant";
 
 %end
 
-static void cookNotifications(){
-	HBLogInfo(@"cooking notifications");
-    NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
+%hook SBBannerContainerViewController
 
-    if ( (!([notesDict count] == 0)) && enabled) {
+-(void)_handleBannerTapGesture:(id)gesture withActionContext:(id)context {
+	HBLogInfo(@"handling banner tap");
+    //Prevents ios9 crash when tapping banner
+    //https://github.com/fewjative/PowerBanners
+	if([[[UIDevice currentDevice] systemVersion] floatValue] >= 9.0){
+		if( [[[self _bulletin] sectionID] isEqualToString:@"com.brycedev.mia"] ){
+			//[[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"sms://" stringByAppendingString:user]]];
+			HBLogInfo(@"the context : %@", context);
+			return;
+		}else{
+			%orig;
+		}
+	}
+	else{
+		%orig;
+	}
+
+}
+
+%end
+
+static void cookNotifications(){
+	[[BDSettingsManager sharedManager] updateSettings];
+	NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
+	HBLogInfo(@"getting the notifications : %@", notesDict);
+    if ( (!([notesDict count] == 0)) && [[BDSettingsManager sharedManager] enabled]) {
+		HBLogInfo(@"cooking notifications");
         id request = [[[%c(BBBulletinRequest) alloc] init] autorelease];
-        [request setTitle: title];
+        [request setTitle: @"MiaAssistant"];
         if([notesDict count] == 1){
             [request setMessage:[NSString stringWithFormat:@"You forgot to send your message to %@", [notesDict objectForKey: [[notesDict allKeys] objectAtIndex:0]]]];
             [request setDefaultAction: [%c(BBAction) actionWithLaunchURL: [NSURL URLWithString: [NSString stringWithFormat:@"sms:%@", [[notesDict allKeys] objectAtIndex:0]]]]];
@@ -144,7 +147,11 @@ static void cookNotifications(){
             [request setMessage:[NSString stringWithFormat:@"You forgot to send your messages to : %@", people]];
             [request setDefaultAction: [%c(BBAction) actionWithLaunchBundleID:@"com.apple.MobileSMS"]];
         }
-        [request setSectionID: @"com.apple.MobileSMS"];
+		if([[[UIDevice currentDevice] systemVersion] floatValue] >= 9.0){
+			[request setSectionID: @"com.brycedev.mia"];
+		}else{
+			[request setSectionID: @"com.apple.MobileSMS"];
+		}
         id ctrl = [%c(SBBulletinBannerController) sharedInstance];
         if([ctrl respondsToSelector:@selector(observer:addBulletin:forFeed:playLightsAndSirens:withReply:)]) {
             [ctrl observer:nil addBulletin:request forFeed:2 playLightsAndSirens:YES withReply:nil];
@@ -156,13 +163,16 @@ static void cookNotifications(){
 
 
 static void testBanner(){
-	HBLogInfo(@"testing banner");
     id request = [[[%c(BBBulletinRequest) alloc] init] autorelease];
-    [request setTitle: title];
+    [request setTitle: @"MiaAssistant"];
     NSArray *testNames = [@[ @"Tim Cook", @"Jay Freeman", @"Morgan Freeman", @"Steve Carell", @"Oliver Queen", @"Oprah Winfrey" ] retain];
     [request setMessage:[NSString stringWithFormat: @"You forgot to send your message to %@", [testNames objectAtIndex: arc4random() % [testNames count]]]];
     [request setDefaultAction: [%c(BBAction) actionWithLaunchBundleID: @"com.apple.MobileSMS"]];
-    [request setSectionID: @"com.apple.MobileSMS"];
+	if([[[UIDevice currentDevice] systemVersion] floatValue] >= 9.0){
+		[request setSectionID: @"com.brycedev.mia"];
+	}else{
+		[request setSectionID: @"com.apple.MobileSMS"];
+	}
     id ctrl = [%c(SBBulletinBannerController) sharedInstance];
     if([ctrl respondsToSelector:@selector(observer:addBulletin:forFeed:playLightsAndSirens:withReply:)]) {
         [ctrl observer:nil addBulletin:request forFeed:2 playLightsAndSirens:YES withReply:nil];
@@ -172,7 +182,6 @@ static void testBanner(){
 }
 
 %ctor{
-	system("open /Applications/MobileSMS.app");
 	[BDSettingsManager sharedManager];
     CFNotificationCenterRef r = CFNotificationCenterGetDarwinNotifyCenter();
     CFNotificationCenterAddObserver(r, NULL, (CFNotificationCallback)cookNotifications, CFSTR("com.brycedev.mia.center.appsuspend"), NULL, 0);

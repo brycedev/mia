@@ -13,8 +13,6 @@
     @property(copy, nonatomic) NSString *bulletinID;
     @property(retain, nonatomic) NSDate *publicationDate;
     @property(retain, nonatomic) NSDate *lastInterruptDate;
-    @property(nonatomic) BOOL showsMessagePreview;
-    @property(nonatomic) BOOL clearable;
 @end
 
 @interface BBBulletinRequest : BBBulletin
@@ -59,4 +57,8 @@
 @interface CKConversationList
     - (void)deleteConversation:(CKConversation *)arg1;
     - (void)deleteConversations:(NSArray*)arg1;
+@end
+
+@interface SBBannerContainerViewController : NSObject
+-(BBBulletinRequest*)_bulletin;
 @end
