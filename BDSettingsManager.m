@@ -30,7 +30,7 @@ void prefschanged(CFNotificationCenterRef center, void * observer, CFStringRef n
     CFArrayRef keyList = CFPreferencesCopyKeyList(appID , kCFPreferencesCurrentUser, kCFPreferencesAnyHost) ?: CFArrayCreate(NULL, NULL, 0, NULL);
     self.settings = (NSDictionary *)CFPreferencesCopyMultiple(keyList, appID , kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
     CFRelease(keyList);
-    HBLogInfo(@"the settings for mia are : %@", self.settings);
+    //HBLogInfo(@"the settings for mia are : %@", self.settings);
 }
 
 - (BOOL)enabled {

@@ -1,3 +1,7 @@
+@interface UIApplication (Private)
+    - (void)launchApplicationWithIdentifier: (NSString*)identifier suspended: (BOOL)suspended;
+@end
+
 @interface BBAction : NSObject
     + (id)action;
     + (id)actionWithLaunchURL:(id)url;
@@ -60,5 +64,5 @@
 @end
 
 @interface SBBannerContainerViewController : NSObject
--(BBBulletinRequest*)_bulletin;
+    -(BBBulletinRequest*)_bulletin;
 @end

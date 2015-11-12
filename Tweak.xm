@@ -5,7 +5,7 @@
 
 - (void)systemApplicationDidSuspend {
 	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.brycedev.mia.center.appsuspend"), nil, nil, YES);
-    return %orig;
+    %orig;
 }
 
 %end
@@ -61,7 +61,7 @@
 
 %new
 - (void)addNewNotification:(NSArray*)array {
-	HBLogInfo(@"adding new notification");
+	//HBLogInfo(@"adding new notification");
     NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
     [notesDict setObject: [array objectAtIndex:0] forKey: [array objectAtIndex:1]];
     [[BDSettingsManager sharedManager] setNotifications: notesDict];
@@ -107,13 +107,17 @@
 %hook SBBannerContainerViewController
 
 -(void)_handleBannerTapGesture:(id)gesture withActionContext:(id)context {
-	HBLogInfo(@"handling banner tap");
+	//HBLogInfo(@"handling banner tap");
     //Prevents ios9 crash when tapping banner
     //https://github.com/fewjative/PowerBanners
 	if([[[UIDevice currentDevice] systemVersion] floatValue] >= 9.0){
-		if( [[[self _bulletin] sectionID] isEqualToString:@"com.brycedev.mia"] ){
-			//[[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"sms://" stringByAppendingString:user]]];
-			HBLogInfo(@"the context : %@", context);
+		if( [[[self _bulletin] sectionID] containsString:@"com.brycedev.mia"] ){
+			if([[[self _bulletin] sectionID] isEqualToString:@"com.brycedev.mia"]){
+				[[UIApplication sharedApplication] launchApplicationWithIdentifier:@"com.apple.MobileSMS" suspended:NO];
+			}else{
+				NSString *identifier = [[[self _bulletin] sectionID] stringByReplacingOccurrencesOfString:@"com.brycedev.mia" withString:@""];
+				[[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"sms://" stringByAppendingString:identifier]]];
+			}
 			return;
 		}else{
 			%orig;
@@ -130,9 +134,9 @@
 static void cookNotifications(){
 	[[BDSettingsManager sharedManager] updateSettings];
 	NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
-	HBLogInfo(@"getting the notifications : %@", notesDict);
+	//HBLogInfo(@"getting the notifications : %@", notesDict);
     if ( (!([notesDict count] == 0)) && [[BDSettingsManager sharedManager] enabled]) {
-		HBLogInfo(@"cooking notifications");
+		//HBLogInfo(@"cooking notifications");
         id request = [[[%c(BBBulletinRequest) alloc] init] autorelease];
         [request setTitle: @"MiaAssistant"];
         if([notesDict count] == 1){
@@ -148,7 +152,11 @@ static void cookNotifications(){
             [request setDefaultAction: [%c(BBAction) actionWithLaunchBundleID:@"com.apple.MobileSMS"]];
         }
 		if([[[UIDevice currentDevice] systemVersion] floatValue] >= 9.0){
-			[request setSectionID: @"com.brycedev.mia"];
+			if([notesDict count] == 1){
+				[request setSectionID: [NSString stringWithFormat:@"com.brycedev.mia%@", [[notesDict allKeys] objectAtIndex:0]]];
+			}else{
+				[request setSectionID: @"com.brycedev.mia"];
+			}
 		}else{
 			[request setSectionID: @"com.apple.MobileSMS"];
 		}
