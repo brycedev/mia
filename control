@@ -3,7 +3,7 @@ Name: Mia
 Depends: mobilesubstrate
 Version: 2.0.0
 Architecture: iphoneos-arm
-Description: An awesome MobileSubstrate tweak!
+Description: Mia alerts you when you've forgotten to send a message in the Messages app.
 Maintainer: Bryce Jackson
 Author: Bryce Jackson
 Section: Tweaks
