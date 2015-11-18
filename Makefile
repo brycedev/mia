@@ -10,6 +10,11 @@ before-stage::
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
+BUNDLE_NAME = com.brycedev.mia
+com.brycedev.mia_INSTALL_PATH = /Library/MobileSubstrate/DynamicLibraries
+
+include $(THEOS)/makefiles/bundle.mk
+
 after-install::
 	install.exec "killall -9 MobileSMS; killall -9 Preferences; killall -9 SpringBoard;"
 SUBPROJECTS += mia

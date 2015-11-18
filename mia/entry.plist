@@ -11,7 +11,7 @@
 		<key>detail</key>
 		<string>BDMRootListController</string>
 		<key>icon</key>
-		<string>Mia.png</string>
+		<string>Icon.png</string>
 		<key>isController</key>
 		<true/>
 		<key>label</key>

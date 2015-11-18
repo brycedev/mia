@@ -1,5 +1,5 @@
 #import <Preferences/PSTableCell.h>
 
-@interface BDSHeaderCell : PSTableCell
+@interface MiaHeaderCell : PSTableCell
 
 @end

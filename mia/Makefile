@@ -1,7 +1,7 @@
 include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = Mia
-Mia_FILES = BDMRootListController.m BDSHeaderCell.m
+Mia_FILES = BDMRootListController.m MiaHeaderCell.m
 Mia_INSTALL_PATH = /Library/PreferenceBundles
 Mia_FRAMEWORKS = UIKit
 Mia_PRIVATE_FRAMEWORKS = Preferences

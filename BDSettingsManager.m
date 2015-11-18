@@ -42,7 +42,6 @@ void prefschanged(CFNotificationCenterRef center, void * observer, CFStringRef n
 }
 
 - (void)setNotifications:(NSMutableDictionary*)notifications {
-    HBLogInfo(@"setting the notifications : %@", notifications);
     CFStringRef appID = CFSTR("com.brycedev.mia");
     CFPreferencesSetValue(CFSTR("notifications"), (CFPropertyListRef *)notifications, appID, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
     [self updateSettings];

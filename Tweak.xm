@@ -1,10 +1,15 @@
 #import "Interfaces.h"
 #import "BDSettingsManager.h"
 
+static BOOL newCompCheck = NO;
+static float delayValue = 0.0;
+
 %hook SMSApplication
 
 - (void)systemApplicationDidSuspend {
-	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.brycedev.mia.center.appsuspend"), nil, nil, YES);
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (delayValue + 3.1) * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.brycedev.mia.center.appsuspend"), nil, nil, YES);
+	});
     %orig;
 }
 
@@ -22,9 +27,7 @@
 - (void)messageEntryViewDidBeginEditing:(CKMessageEntryView *)view {
     CKConversation *convo = [self conversation];
     IMChat *chat = [convo chat];
-
     NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
-
     if (!([notesDict count] == 0)) {
         if ([notesDict objectForKey:chat.chatIdentifier]) {
             [notesDict removeObjectForKey:chat.chatIdentifier];
@@ -34,34 +37,56 @@
     %orig;
 }
 
-- (void)viewDidDisappear:(BOOL)truth {
-    [self studyTextExistence];
+- (void)viewDidDisappear:(BOOL)animated {
 	%orig;
+    [self studyTextExistence];
 }
 
-%new
-- (void)studyTextExistence {
-    CKComposition *comp = [self composition];
-    CKConversation *convo = [self conversation];
-    IMChat *chat = [convo chat];
+- (void)viewWillAppear:(BOOL)animated {
+	%orig;
+	if([self.navigationItem.title isEqualToString: @"New Message"])
+		newCompCheck = YES;
+	else
+		newCompCheck = NO;
+    [self studyTextExistence];
+}
 
-    if([comp hasNonwhiteSpaceContent]){
-        NSArray *convoInfo = @[convo.name, chat.chatIdentifier];
-        [self addNewNotification: convoInfo];
-    }else {
-        NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
-        if (!([notesDict count] == 0)) {
-            if ([notesDict objectForKey: chat.chatIdentifier]) {
-                [notesDict removeObjectForKey: chat.chatIdentifier];
-                [[BDSettingsManager sharedManager] setNotifications: notesDict];
-            }
+- (void)sendMessage:(CKComposition*)message {
+	%orig;
+	CKConversation *convo = [self conversation];
+	IMChat *chat = [convo chat];
+    NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
+    if (!([notesDict count] == 0)) {
+        if ([notesDict objectForKey:chat.chatIdentifier]) {
+            [notesDict removeObjectForKey:chat.chatIdentifier];
+            [[BDSettingsManager sharedManager] setNotifications: notesDict];
         }
     }
 }
 
 %new
+- (void)studyTextExistence {
+	if(!newCompCheck){
+		CKComposition *comp = [self composition];
+	    CKConversation *convo = [self conversation];
+	    IMChat *chat = [convo chat];
+	    if([comp hasNonwhiteSpaceContent]){
+	        NSArray *convoInfo = @[convo.name, chat.chatIdentifier];
+	        [self addNewNotification: convoInfo];
+	    }else {
+	        NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
+	        if (!([notesDict count] == 0)) {
+	            if ([notesDict objectForKey: chat.chatIdentifier]) {
+	                [notesDict removeObjectForKey: chat.chatIdentifier];
+	                [[BDSettingsManager sharedManager] setNotifications: notesDict];
+	            }
+	        }
+	    }
+	}
+}
+
+%new
 - (void)addNewNotification:(NSArray*)array {
-	//HBLogInfo(@"adding new notification");
     NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
     [notesDict setObject: [array objectAtIndex:0] forKey: [array objectAtIndex:1]];
     [[BDSettingsManager sharedManager] setNotifications: notesDict];
@@ -73,22 +98,18 @@
 
 - (void)deleteConversation:(CKConversation *)conversation {
     IMChat *chat = [conversation chat];
-
     NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
-
     if (!([notesDict count] == 0)) {
         if ([notesDict objectForKey: chat.chatIdentifier]) {
             [notesDict removeObjectForKey: chat.chatIdentifier];
             [[BDSettingsManager sharedManager] setNotifications: notesDict];
          }
     }
-
     %orig;
 }
 
 - (void)deleteConversations:(NSArray*)array {
     NSMutableDictionary *notesDict = [[BDSettingsManager sharedManager] notifications];
-
     for (CKConversation * convo in array){
         if (!([notesDict count] == 0)) {
 			IMChat *chat = [convo chat];
@@ -98,7 +119,6 @@
             }
         }
     }
-
     %orig;
 }
 
@@ -107,9 +127,6 @@
 %hook SBBannerContainerViewController
 
 -(void)_handleBannerTapGesture:(id)gesture withActionContext:(id)context {
-	//HBLogInfo(@"handling banner tap");
-    //Prevents ios9 crash when tapping banner
-    //https://github.com/fewjative/PowerBanners
 	if([[[UIDevice currentDevice] systemVersion] floatValue] >= 9.0){
 		if( [[[self _bulletin] sectionID] containsString:@"com.brycedev.mia"] ){
 			if([[[self _bulletin] sectionID] isEqualToString:@"com.brycedev.mia"]){
@@ -126,7 +143,6 @@
 	else{
 		%orig;
 	}
-
 }
 
 %end
@@ -190,6 +206,14 @@ static void testBanner(){
 }
 
 %ctor{
+	dlopen("/Library/MobileSubstrate/DynamicLibraries/SendDelay.dylib", RTLD_NOW);
+	CFStringRef sdApp = CFSTR("com.gsquared.senddelay");
+    CFArrayRef keyList = CFPreferencesCopyKeyList(sdApp , kCFPreferencesCurrentUser, kCFPreferencesAnyHost) ?: CFArrayCreate(NULL, NULL, 0, NULL);
+    NSDictionary *sdDict = (NSDictionary *)CFPreferencesCopyMultiple(keyList, sdApp , kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
+    CFRelease(keyList);
+	if(sdDict != nil)
+		delayValue = [sdDict[@"delayValue"] doubleValue];
+
 	[BDSettingsManager sharedManager];
     CFNotificationCenterRef r = CFNotificationCenterGetDarwinNotifyCenter();
     CFNotificationCenterAddObserver(r, NULL, (CFNotificationCallback)cookNotifications, CFSTR("com.brycedev.mia.center.appsuspend"), NULL, 0);

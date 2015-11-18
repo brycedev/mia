@@ -1,1 +1,1 @@
-#define MIA_BLUE [UIColor colorWithRed: 0.0 green: 0.298 blue: 0.427 alpha: 1.0]
+#define MIA_BLUE [UIColor colorWithRed:0.52 green:0.62 blue:0.64 alpha:1.0]

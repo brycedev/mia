@@ -60,7 +60,7 @@ UIColor *originalTint;
 - (void)openDonateBitcoin {
     UIPasteboard *appPasteBoard = [UIPasteboard generalPasteboard];
     appPasteBoard.persistent = YES;
-    [appPasteBoard setString: @"1PiVT3TfzvtLpQmmFyxHtdMVzyDGhE1sN"];
+    [appPasteBoard setString: @"1Fa3YxEuENwiJemzo4mbc69UBJNY3xdDkn"];
 
     if([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"bitcoin:"]])
         [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"bitcoin:"]];
